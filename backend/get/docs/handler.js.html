@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: handler.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: handler.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Validate if tinyId meets syntax specified.
+ * @param {string} str - The tinyID to be verified.
+ * @returns {boolean} - Validity of str as TinyId
+ */
+const validateTinyId = (str) => {
+  const pattern = new RegExp('^[a-fA-F0-9]{32}$', 'i'); // uuidv4 hex
+  return !!pattern.test(str);
+};
+
+/**
+ * Get item in database.
+ * @param {} deps - The dyanmodb client settings.
+ * @param {} tableName - The table name.
+ * @param {} id - The id used to look up item in the database.
+ * @returns {} - Response of Item from the database
+ * @throws {} - Exception errors
+ */
+const getItemFromDB = (deps, tableName, id) => {
+  const params = {
+    TableName: tableName,
+    Key: {
+      id: id,
+    },
+  };
+  return deps.dbClient
+    .get(params)
+    .promise()
+    .then((res) => res.Item)
+    .catch((err) => err);
+};
+
+/**
+ * Define redirect response.
+ * @param {number} statusCode - The statusCode to return.
+ * @param {string} url - The url to redirect users to.
+ * @returns {} - Redirect
+ */
+const redirect = (statusCode, url) => ({
+  statusCode: statusCode,
+  headers: {
+    Location: url,
+    'Access-Control-Allow-Origin': '*', // Required for CORS support to work
+    'Access-Control-Allow-Credentials': true, // Required for cookies, authorization headers with HTTPS
+  },
+});
+
+/**
+ * Define json response.
+ * @param {number} statusCode - The statusCode to return.
+ * @param {} body - The body to respond users with.
+ * @returns {} - Response
+ */
+const response = (statusCode, body) => ({
+  statusCode: statusCode,
+  headers: {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*', // Required for CORS support to work
+    'Access-Control-Allow-Credentials': true, // Required for cookies, authorization headers with HTTPS
+  },
+  body: JSON.stringify(body, null, 2),
+});
+
+/**
+ * Accept request, lookup tinyUrl in database and return results or error.
+ * @param {} deps - The dbClient used.
+ * @param {} event - The event of the accepted json request.
+ * @returns {} - Redirect or response
+ */
+module.exports = (deps) => async (event) => {
+  const request = event;
+
+  // Saving request to DynamoDB and respond
+  if (
+    request &amp;&amp;
+    request.pathParameters &amp;&amp;
+    request.pathParameters.tinyId &amp;&amp;
+    validateTinyId(request.pathParameters.tinyId)
+  ) {
+    const tinyId = request.pathParameters.tinyId;
+    const tableName = process.env.DYNAMO_TABLE || 'tinyurl';
+
+    try {
+      let record = await getItemFromDB(deps, tableName, tinyId);
+      if (record &amp;&amp; record.url) {
+        const item = record;
+        const log = { event: event, response: redirect(301, item.url) };
+        console.log('EVENT: ' + JSON.stringify(log, null, 2));
+        return redirect(301, item.url);
+      } else {
+        if (record &amp;&amp; record.statusCode &amp;&amp; record.statusCode == 400) {
+          const errorMsg = record.name + ': ' + record.message;
+          const log = { event: event, response: response(500, { message: errorMsg }) };
+          console.warn('WARN: ' + JSON.stringify(log, null, 2));
+          return response(500, { message: errorMsg });
+        }
+        const log = { event: event, response: response(422, { message: `Invalid tinyId` }) };
+        console.log('EVENT: ' + JSON.stringify(log, null, 2));
+        return response(422, { message: `Invalid tinyId` });
+      }
+    } catch (err) {
+      const log = { event: event, response: response(500, { message: err.message }) };
+      console.log('WARN: ' + JSON.stringify(log, null, 2));
+      return response(500, { message: err.message });
+    }
+  } else {
+    const log = { event: event, response: response(422, { message: `Invalid tinyId` }) };
+    console.log('EVENT: ' + JSON.stringify(log, null, 2));
+    return response(422, { message: `Invalid tinyId` });
+  }
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#getItemFromDB">getItemFromDB</a></li><li><a href="global.html#redirect">redirect</a></li><li><a href="global.html#response">response</a></li><li><a href="global.html#validateTinyId">validateTinyId</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Mon Jul 06 2020 11:54:21 GMT+0800 (Hong Kong Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

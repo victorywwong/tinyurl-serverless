@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'tiny-url
+
+  Cfn Template for tiny-url frontend
+
+  '
+Parameters:
+  Stage:
+    Type: String
+    Description: Deploying Environment (e.g. stage, prod)
+    Default: dev
+Resources:
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: Tiny-url website OA
+  CloudfrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: Cloudfront distribution for serverless website
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+        - Id: s3-website
+          DomainName:
+            Fn::GetAtt:
+            - FrontendS3TinyUrlBucket
+            - DomainName
+          S3OriginConfig:
+            OriginAccessIdentity:
+              Fn::Sub: origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
+        DefaultCacheBehavior:
+          Compress: true
+          AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          ForwardedValues:
+            QueryString: false
+          TargetOriginId: s3-website
+          ViewerProtocolPolicy: redirect-to-https
+  FrontendS3TinyUrlBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: tinyurl-tech-frontend
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      VersioningConfiguration:
+        Status: Enabled
+  FrontendS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: FrontendS3TinyUrlBucket
+      PolicyDocument:
+        Statement:
+        - Action:
+          - s3:GetObject
+          Effect: Allow
+          Resource:
+          - Fn::Sub: arn:aws:s3:::${FrontendS3TinyUrlBucket}/*
+          Principal:
+            AWS:
+              Fn::Sub: arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity
+                ${CloudFrontOriginAccessIdentity}
+  DeploymentLayer:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:375983427419:applications/deploy-to-s3
+        SemanticVersion: 2.2.0
+  DeploymentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Layers:
+      - Fn::GetAtt:
+        - DeploymentLayer
+        - Outputs.Arn
+      CodeUri: s3://tinyurl-tech-test/bd28a0849b355b648de332542ca703c6
+      AutoPublishAlias: live
+      Runtime: python3.6
+      Handler: deployer.resource_handler
+      Timeout: 600
+      Policies:
+      - S3CrudPolicy:
+          BucketName:
+            Ref: FrontendS3TinyUrlBucket
+  DeploymentResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - DeploymentFunction
+        - Arn
+      Version:
+        Ref: DeploymentFunction.Version
+      TargetBucket:
+        Ref: FrontendS3TinyUrlBucket
+      Acl: public-read
+      CacheControlMaxAge: 600
+  FrontendS3TinyUrlBucketName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/apprepo/${Stage}/s3/FrontendS3TinyUrlBucket/Name
+      Type: String
+      Value:
+        Ref: FrontendS3TinyUrlBucket
+      Description: FrontendS3TinyUrlBucket bucket name
+  WebsiteUrl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/apprepo/${Stage}/s3/FrontendS3TinyUrlBucket/WebsiteURL
+      Type: String
+      Value:
+        Fn::GetAtt:
+        - FrontendS3TinyUrlBucket
+        - WebsiteURL
+      Description: FrontendS3TinyUrlBucket website URL
+Outputs:
+  Url:
+    Description: The static website URL for the service.
+    Value:
+      Fn::GetAtt:
+      - FrontendS3TinyUrlBucket
+      - WebsiteURL

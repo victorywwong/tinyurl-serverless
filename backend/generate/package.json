@@ -1,0 +1,36 @@
+{
+  "name": "tiny-url-generate",
+  "version": "1.0.0",
+  "description": "Generate tiny url",
+  "main": "app.js",
+  "repository": "https://github.com/awslabs/aws-sam-cli/tree/develop/samcli/local/init/templates/cookiecutter-aws-sam-hello-nodejs",
+  "author": "Victor Wong",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "base62": "^2.0.1"
+  },
+  "scripts": {
+    "test": "mocha tests/unit/",
+    "test:cov": "nyc --reporter=html mocha tests/unit/",
+    "test:badge": "nyc --reporter=text-lcov mocha tests/unit/ | coveralls",
+    "jsdoc": "jsdoc handler.js -d ./docs"
+  },
+  "devDependencies": {
+    "aws-sdk": "^2.706.0",
+    "aws-sdk-mock": "^5.1.0",
+    "chai": "^4.2.0",
+    "eslint": "^7.3.1",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "faker": "^4.1.0",
+    "jsdoc": "^3.6.4",
+    "mocha": "^6.1.4",
+    "nyc": "^15.1.0",
+    "prettier": "^2.0.5",
+    "rewire": "^5.0.0",
+    "sinon": "^9.0.2"
+  }
+}

@@ -1,0 +1,274 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "This is the API for Tiny URL Shortener.  tinyurl.tech at [https://tinyurl.tech](https://tinyurl.tech) .     ",
+    "version": "2020-07-07T00:00:00.000Z",
+    "title": {
+      "Fn.Sub": "tinyurl-api-${Stage}"
+    },
+    "contact": {
+      "email": "victor@ywwong.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "host": "www.tinyurl.tech",
+  "basePath": "/prod/",
+  "tags": [
+    {
+      "name": "tinyurl",
+      "description": "URL shortening service"
+    }
+  ],
+  "schemes": [
+    "https"
+  ],
+  "x-amazon-apigateway-request-validators": {
+    "all": {
+      "validateRequestBody": true,
+      "validateRequestParameters": true
+    }
+  },
+  "x-amazon-apigateway-request-validator": "all",
+  "x-amazon-apigateway-gateway-responses": {
+    "BAD_REQUEST_BODY": {
+      "responseTemplates": {
+        "application/json": "{\"errorCode\": \"BadRequestBody\", \"message\": \"$context.error.validationErrorString\"}"
+      },
+      "responseParameters": {
+        "gatewayresponse.header.Access-Control-Allow-Origin": "'*'"
+      }
+    },
+    "DEFAULT_4XX": {
+      "responseParameters": {
+        "gatewayresponse.header.Access-Control-Allow-Origin": "'*'"
+      }
+    },
+    "DEFAULT_5XX": {
+      "responseParameters": {
+        "gatewayresponse.header.Access-Control-Allow-Origin": "'*'"
+      }
+    }
+  },
+  "paths": {
+    "/generate": {
+      "post": {
+        "tags": [
+          "tinyurl"
+        ],
+        "summary": "Generate a new tinyUrl",
+        "description": "Return with or without error",
+        "operationId": "GenerateTinyUrlFunction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateTinyUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateTinyUrlResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Rejected invalid URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateTinyUrlRejection"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Exceptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateTinyUrlException"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": {
+            "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiLambda.Arn}:live/invocations"
+          },
+          "httpMethod": "POST",
+          "type": "aws_proxy",
+          "passthroughBehavior": "never"
+        }
+      }
+    },
+    "/{tinyId}": {
+      "get": {
+        "tags": [
+          "tinyurl"
+        ],
+        "summary": "Find URL by tinyId",
+        "description": "Redirects to url or respond with error",
+        "operationId": "GetTinyUrlFunction",
+        "parameters": [
+          {
+            "name": "tinyId",
+            "in": "path",
+            "description": "ID of tinyUrl entry",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "301": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTinyUrlResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Rejected invalid URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTinyUrlRejection"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Exceptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTinyUrlException"
+                }
+              }
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "uri": {
+            "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiLambda.Arn}:live/invocations"
+          },
+          "httpMethod": "POST",
+          "type": "aws_proxy",
+          "passthroughBehavior": "never"
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TinyUrl": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          }
+        }
+      },
+      "GenerateTinyUrlRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "url": "https://amazon.com",
+          "comment": "Amazon.com"
+        }
+      },
+      "GenerateTinyUrlResponse": {
+        "type": "object",
+        "properties": {
+          "tinyId": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "tinyId": "3d9b340d5c818c63f290939190979564"
+        }
+      },
+      "GenerateTinyUrlRejection": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "message": "Invalid Url"
+        }
+      },
+      "GenerateTinyUrlException": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "message": "DynamoDB: ResourceNotFoundException: Cannot do operations on a non-existent table"
+        }
+      },
+      "GetTinyUrlResponse": {
+        "type": "object",
+        "example": {
+          "statusCode": 301,
+          "header": {
+            "Location": "https://amazon.com"
+          }
+        }
+      },
+      "GetTinyUrlRejection": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "message": "Invalid Url"
+        }
+      },
+      "GetTinyUrlException": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "message": "DynamoDB: ResourceNotFoundException: Cannot do operations on a non-existent table"
+        }
+      }
+    }
+  }
+}

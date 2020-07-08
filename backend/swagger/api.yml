@@ -1,0 +1,140 @@
+swagger: "2.0"
+info:
+  description: "This is the API for Tiny URL Shortener.  tinyurl.tech at [https://tinyurl.tech](https://tinyurl.tech) .     "
+  version: "1.0.0"
+  title: "tinyurl.tech API"
+  contact:
+    email: "victor@ywwong.com"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+host: "www.tinyurl.tech"
+basePath: "/prod/"
+tags:
+- name: "tinyurl"
+  description: "URL shortening service"
+schemes:
+- "https"
+paths:
+  /generate:
+    post:
+      tags:
+      - "tinyurl"
+      summary: "Generate a new tinyUrl"
+      description: "Return with or without error"
+      operationId: "GenerateTinyUrlFunction"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "request"
+        description: "Tinyurl request object"
+        required: true
+        schema:
+          $ref: "#/definitions/GenerateTinyUrlRequest"
+      responses:
+        "200":
+          description: "Successful operation"
+          schema:
+            $ref: "#/definitions/GenerateTinyUrlResponse"
+        "422":
+          description: "Rejected invalid URL"
+          schema:
+            $ref: "#/definitions/GenerateTinyUrlRejection"
+        "500":
+          description: "Exceptions"
+          schema:
+            $ref: "#/definitions/GenerateTinyUrlException"
+  /{tinyId}:
+    get:
+      tags:
+      - "tinyurl"
+      summary: "Find URL by tinyId"
+      description: "Redirects to url or respond with error"
+      operationId: "GetTinyUrlFunction"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "tinyId"
+        in: "path"
+        description: "ID of tinyUrl entry"
+        required: true
+        type: "string"
+      responses:
+        "301":
+          description: "Successful operation"
+          schema:
+            $ref: "#/definitions/GetTinyUrlResponse"
+        "422":
+          description: "Rejected invalid URL"
+          schema:
+            $ref: "#/definitions/GetTinyUrlRejection"
+        "500":
+          description: "Exceptions"
+          schema:
+            $ref: "#/definitions/GetTinyUrlException"
+definitions:
+  TinyUrl:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+      url:
+        type: "string"
+      comment:
+        type: "string"
+  GenerateTinyUrlRequest:
+    type: "object"
+    properties:
+      url:
+        type: "string"
+      comment:
+        type: "string"
+    example:
+      url: "https://amazon.com"
+      comment: "Amazon.com"
+  GenerateTinyUrlResponse:
+    type: "object"
+    properties:
+      tinyId:
+        type: "string"
+    example:
+      tinyId: "3d9b340d5c818c63f290939190979564"
+  GenerateTinyUrlRejection:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+    example:
+      message: "Invalid Url"
+  GenerateTinyUrlException:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+    example:
+      message: "DynamoDB: ResourceNotFoundException: Cannot do operations on a non-existent table"
+  GetTinyUrlResponse:
+    type: "object"
+    example:
+      statusCode: 301
+      header:
+        Location: "https://amazon.com"
+  GetTinyUrlRejection:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+    example:
+      message: "Invalid Url"
+  GetTinyUrlException:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+    example:
+      message: "DynamoDB: ResourceNotFoundException: Cannot do operations on a non-existent table"
