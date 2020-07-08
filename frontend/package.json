@@ -9,7 +9,8 @@
     "test:badges": "vue-cli-service test:unit && jest-coverage-badges",
     "test:e2e": "vue-cli-service test:e2e",
     "lint": "vue-cli-service lint",
-    "deploy": "vue-cli-service s3-deploy"
+    "deploy": "vue-cli-service s3-deploy",
+    "ci": "npm run lint && npm run test:unit && npm run build"
   },
   "dependencies": {
     "axios": "^0.19.2",

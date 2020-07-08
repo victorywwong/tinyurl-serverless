@@ -14,7 +14,7 @@ Written in Node.JS, CloudFormation and built using the AWS Serverless Applicatio
 
 3. Ops component - CloudWatch implemented with Logging and Alarms creating alerts on abnormalty
 
-To be an effective URL shortening solution, the following goals should be met.
+## Goal
 
 Functional requirements:
 

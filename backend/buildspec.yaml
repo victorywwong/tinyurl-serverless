@@ -1,0 +1,14 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 12
+  build:
+    commands:
+      - ./backend/bin/package-backend.sh
+      - ./bin/package.sh -n backend
+artifacts:
+  files:
+    - backend/target/cfn/app/packaged.yml
+  discard-paths: yes

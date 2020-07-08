@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Generate tiny url",
   "main": "app.js",
-  "repository": "https://github.com/awslabs/aws-sam-cli/tree/develop/samcli/local/init/templates/cookiecutter-aws-sam-hello-nodejs",
+  "repository": "https://github.com/victorywwong/tinyurl-serverless/tree/master/backend/generate",
   "author": "Victor Wong",
   "license": "MIT",
   "dependencies": {
