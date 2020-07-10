@@ -25,12 +25,14 @@ Parameters:
     Type: String
     Description: Deploying Environment (e.g. stage, prod)
     Default: dev
+Conditions:
+  IsProd: !Equals [!Ref Stage, "prod"]
 
 Resources:
   TinyUrlDynamo:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: tinyurl
+      TableName: !If [IsProd, "tinyurl", "tinyurl-test"]
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
@@ -74,6 +76,70 @@ Resources:
         - DynamoDBReadPolicy:
             TableName: !Ref TinyUrlDynamo
         - CloudWatchPutMetricPolicy: {}
+  # Storing resources names to SSM
+  TinyUrlDynamoTableName:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/applications/tinyurl/${Stage}/ddb/TinyUrlDynamo/TableName"
+      Type: "String"
+      Value: !Ref TinyUrlDynamo
+      Description: "TinyUrlDynamo Table name"
+  TinyUrlDynamoTableArn:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/applications/tinyurl/${Stage}/ddb/TinyUrlDynamo/TableArn"
+      Type: "String"
+      Value: !GetAtt TinyUrlDynamo.Arn
+      Description: "TinyUrlDynamo Table name"
+  GenerateTinyUrlFunctionName:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/applications/tinyurl/${Stage}/lambda/GenerateTinyUrlFunction/FunctionName"
+      Type: "String"
+      Value: !Ref GenerateTinyUrlFunction
+      Description: "GenerateTinyUrlFunction function name"
+  GenerateTinyUrlFunctionArn:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/applications/tinyurl/${Stage}/lambda/GenerateTinyUrlFunction/FunctionArn"
+      Type: "String"
+      Value: !Ref GenerateTinyUrlFunction
+      Description: "GenerateTinyUrlFunction function ARN"
+  GenerateTinyUrlFunctionVersion:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/applications/tinyurl/${Stage}/lambda/GenerateTinyUrlFunction/FunctionVersion"
+      Type: "String"
+      Value: !Ref GenerateTinyUrlFunction.Version
+      Description: "GenerateTinyUrlFunction function version for alias live"
+  GetTinyUrlFunctionName:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/applications/tinyurl/${Stage}/lambda/GetTinyUrlFunction/FunctionName"
+      Type: "String"
+      Value: !Ref GetTinyUrlFunction
+      Description: "GetTinyUrlFunction function name"
+  GetTinyUrlFunctionArn:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/applications/tinyurl/${Stage}/lambda/GetTinyUrlFunction/FunctionArn"
+      Type: "String"
+      Value: !Ref GetTinyUrlFunction
+      Description: "GetTinyUrlFunction function ARN"
+  GetTinyUrlFunctionVersion:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/applications/tinyurl/${Stage}/lambda/GetTinyUrlFunction/FunctionVersion"
+      Type: "String"
+      Value: !Ref GetTinyUrlFunction.Version
+      Description: "GetTinyUrlFunction function version for alias live"
+  ApiEndpoint:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "/applications/tinyurl/${Stage}/apigateway/ApplicationsApi/Endpoint"
+      Type: "String"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+      Description: "ApplicationsApi endpoint"
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

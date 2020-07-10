@@ -125,6 +125,13 @@ Resources:
       # tell the deployer where to upload the files
       TargetBucket: !Ref FrontendS3TinyUrlBucket
 
+      Substitutions:
+        # scope string substitutions to .js and .js.map files in the production built website
+        FilePattern: 'js/*.js*'
+        Values:
+          # replaces any occurrence of ${ValueKey} in the javascript code with the following values
+          BACKEND_ENDPOINT: !Sub '{{resolve:ssm:/applications/tinyurl/${Stage}/apigateway/ApplicationsApi/Endpoint:1}}'
+
       # Choose the ACL and caching policies
       # eg, for directly accessible web site
       # use public-read and 10 minutes caching
@@ -135,17 +142,24 @@ Resources:
   FrontendS3TinyUrlBucketName:
     Type: 'AWS::SSM::Parameter'
     Properties:
-      Name: !Sub '/applications/apprepo/${Stage}/s3/FrontendS3TinyUrlBucket/Name'
+      Name: !Sub '/applications/tinyurl/${Stage}/s3/FrontendS3TinyUrlBucket/Name'
       Type: 'String'
       Value: !Ref FrontendS3TinyUrlBucket
       Description: 'FrontendS3TinyUrlBucket bucket name'
   WebsiteUrl:
     Type: 'AWS::SSM::Parameter'
     Properties:
-      Name: !Sub '/applications/apprepo/${Stage}/s3/FrontendS3TinyUrlBucket/WebsiteURL'
+      Name: !Sub '/applications/tinyurl/${Stage}/s3/FrontendS3TinyUrlBucket/WebsiteURL'
       Type: 'String'
       Value: !GetAtt FrontendS3TinyUrlBucket.WebsiteURL
-      Description: 'FrontendS3TinyUrlBucket website URL'
+      Description: 'Frontend S3 Bucket Website URL'
+  CloudfrontDomain:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: !Sub '/applications/tinyurl/${Stage}/cloudfront/CloudfrontDistribution/DomainName'
+      Type: 'String'
+      Value: !GetAtt CloudfrontDistribution.DomainName
+      Description: 'Frontend Cloudfront Domain'
 Outputs:
   Url:
     Description: The static website URL for the service.

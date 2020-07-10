@@ -15,7 +15,7 @@ Parameters:
   ApplicationStackName:
     Type: String
     Description: The stack name the CD pipeline will use to deploy the application.
-    Default: "tinyurl-serverless-backend"
+    Default: "tinyurl-severless-backend"
   Stage:
     Type: String
     Description: The stage where the application is running in, e.g., dev, prod.
@@ -172,7 +172,7 @@ Resources:
               - ssm:AddTagsToResource
               - ssm:RemoveTagsFromResource
             Resource:
-              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/applications/apprepo/*
+              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/applications/tinyurl/*
           - Effect: "Allow"
             Action:
               - cognito-idp:CreateUserPool

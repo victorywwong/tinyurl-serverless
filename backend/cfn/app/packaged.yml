@@ -1,10 +1,10 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: 'tiny-url
+Description: "tiny-url
 
   SAM Template for tiny-url
 
-  '
+  "
 Globals:
   Function:
     Timeout: 20
@@ -12,19 +12,19 @@ Globals:
       Variables:
         DYNAMO_TABLE:
           Fn::Select:
-          - 1
-          - Fn::Split:
-            - /
-            - Fn::GetAtt:
-              - TinyUrlDynamo
-              - Arn
+            - 1
+            - Fn::Split:
+                - /
+                - Fn::GetAtt:
+                    - TinyUrlDynamo
+                    - Arn
         DB_ENDPOINT: http://dynamodb.ap-east-1.amazonaws.com
         REGION_NAME: ap-east-1
   Api:
     Cors:
-      AllowHeaders: '''Content-Type,X-Amz-Date,X-Amz-Security-Token,Authorization,X-Api-Key,X-Requested-With,Accept,Access-Control-Allow-Methods,Access-Control-Allow-Origin,Access-Control-Allow-Headers'''
-      AllowOrigin: '''*'''
-      AllowMethods: '''GET,POST,OPTIONS'''
+      AllowHeaders: "'Content-Type,X-Amz-Date,X-Amz-Security-Token,Authorization,X-Api-Key,X-Requested-With,Accept,Access-Control-Allow-Methods,Access-Control-Allow-Origin,Access-Control-Allow-Headers'"
+      AllowOrigin: "'*'"
+      AllowMethods: "'GET,POST,OPTIONS'"
 Parameters:
   Stage:
     Type: String
@@ -36,11 +36,11 @@ Resources:
     Properties:
       TableName: tinyurl
       AttributeDefinitions:
-      - AttributeName: id
-        AttributeType: S
+        - AttributeName: id
+          AttributeType: S
       KeySchema:
-      - AttributeName: id
-        KeyType: HASH
+        - AttributeName: id
+          KeyType: HASH
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
@@ -58,10 +58,10 @@ Resources:
             Method: post
       AutoPublishAlias: live
       Policies:
-      - DynamoDBWritePolicy:
-          TableName:
-            Ref: TinyUrlDynamo
-      - CloudWatchPutMetricPolicy: {}
+        - DynamoDBWritePolicy:
+            TableName:
+              Ref: TinyUrlDynamo
+        - CloudWatchPutMetricPolicy: {}
   GetTinyUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -76,10 +76,10 @@ Resources:
             Method: get
       AutoPublishAlias: live
       Policies:
-      - DynamoDBReadPolicy:
-          TableName:
-            Ref: TinyUrlDynamo
-      - CloudWatchPutMetricPolicy: {}
+        - DynamoDBReadPolicy:
+            TableName:
+              Ref: TinyUrlDynamo
+        - CloudWatchPutMetricPolicy: {}
 Outputs:
   GenerateTinyUrlApi:
     Description: API Gateway endpoint URL for Generate Tiny Url function
@@ -89,14 +89,14 @@ Outputs:
     Description: Generate Tiny Url Lambda Function ARN
     Value:
       Fn::GetAtt:
-      - GenerateTinyUrlFunction
-      - Arn
+        - GenerateTinyUrlFunction
+        - Arn
   GenerateTinyUrlFunctionIamRole:
     Description: Implicit IAM Role created for Generate Tiny Url function
     Value:
       Fn::GetAtt:
-      - GenerateTinyUrlFunctionRole
-      - Arn
+        - GenerateTinyUrlFunctionRole
+        - Arn
   GetTinyUrlApi:
     Description: API Gateway endpoint URL for Get Tiny Url function
     Value:
@@ -105,11 +105,11 @@ Outputs:
     Description: Get Tiny Url Lambda Function ARN
     Value:
       Fn::GetAtt:
-      - GetTinyUrlFunction
-      - Arn
+        - GetTinyUrlFunction
+        - Arn
   GetTinyUrlFunctionIamRole:
     Description: Implicit IAM Role created for Get Tiny Url function
     Value:
       Fn::GetAtt:
-      - GetTinyUrlFunctionRole
-      - Arn
+        - GetTinyUrlFunctionRole
+        - Arn

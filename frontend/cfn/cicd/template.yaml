@@ -111,7 +111,7 @@ Resources:
               - ssm:AddTagsToResource
               - ssm:RemoveTagsFromResource
             Resource:
-              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/applications/apprepo/*
+              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/applications/tinyurl/*
           - Effect: 'Allow'
             Action:
               - iam:CreateRole
@@ -250,7 +250,7 @@ Resources:
               - ssm:AddTagsToResource
               - ssm:RemoveTagsFromResource
             Resource:
-              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/applications/apprepo/*
+              - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/applications/tinyurl/*
           - Effect: 'Allow'
             Action:
               - cognito-idp:CreateUserPool

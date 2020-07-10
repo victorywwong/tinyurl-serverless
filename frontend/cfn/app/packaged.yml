@@ -25,20 +25,20 @@ Resources:
         Enabled: true
         HttpVersion: http2
         Origins:
-        - Id: s3-website
-          DomainName:
-            Fn::GetAtt:
-            - FrontendS3TinyUrlBucket
-            - DomainName
-          S3OriginConfig:
-            OriginAccessIdentity:
-              Fn::Sub: origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
+          - Id: s3-website
+            DomainName:
+              Fn::GetAtt:
+                - FrontendS3TinyUrlBucket
+                - DomainName
+            S3OriginConfig:
+              OriginAccessIdentity:
+                Fn::Sub: origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
         DefaultCacheBehavior:
           Compress: true
           AllowedMethods:
-          - GET
-          - HEAD
-          - OPTIONS
+            - GET
+            - HEAD
+            - OPTIONS
           ForwardedValues:
             QueryString: false
           TargetOriginId: s3-website
@@ -59,15 +59,15 @@ Resources:
         Ref: FrontendS3TinyUrlBucket
       PolicyDocument:
         Statement:
-        - Action:
-          - s3:GetObject
-          Effect: Allow
-          Resource:
-          - Fn::Sub: arn:aws:s3:::${FrontendS3TinyUrlBucket}/*
-          Principal:
-            AWS:
-              Fn::Sub: arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity
-                ${CloudFrontOriginAccessIdentity}
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${FrontendS3TinyUrlBucket}/*
+            Principal:
+              AWS:
+                Fn::Sub: arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity
+                  ${CloudFrontOriginAccessIdentity}
   DeploymentLayer:
     Type: AWS::Serverless::Application
     Properties:
@@ -78,25 +78,25 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Layers:
-      - Fn::GetAtt:
-        - DeploymentLayer
-        - Outputs.Arn
+        - Fn::GetAtt:
+            - DeploymentLayer
+            - Outputs.Arn
       CodeUri: s3://tinyurl-tech-test/bd28a0849b355b648de332542ca703c6
       AutoPublishAlias: live
       Runtime: python3.6
       Handler: deployer.resource_handler
       Timeout: 600
       Policies:
-      - S3CrudPolicy:
-          BucketName:
-            Ref: FrontendS3TinyUrlBucket
+        - S3CrudPolicy:
+            BucketName:
+              Ref: FrontendS3TinyUrlBucket
   DeploymentResource:
     Type: AWS::CloudFormation::CustomResource
     Properties:
       ServiceToken:
         Fn::GetAtt:
-        - DeploymentFunction
-        - Arn
+          - DeploymentFunction
+          - Arn
       Version:
         Ref: DeploymentFunction.Version
       TargetBucket:
@@ -107,7 +107,7 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Name:
-        Fn::Sub: /applications/apprepo/${Stage}/s3/FrontendS3TinyUrlBucket/Name
+        Fn::Sub: /applications/tinyurl/${Stage}/s3/FrontendS3TinyUrlBucket/Name
       Type: String
       Value:
         Ref: FrontendS3TinyUrlBucket
@@ -116,17 +116,17 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Name:
-        Fn::Sub: /applications/apprepo/${Stage}/s3/FrontendS3TinyUrlBucket/WebsiteURL
+        Fn::Sub: /applications/tinyurl/${Stage}/s3/FrontendS3TinyUrlBucket/WebsiteURL
       Type: String
       Value:
         Fn::GetAtt:
-        - FrontendS3TinyUrlBucket
-        - WebsiteURL
+          - FrontendS3TinyUrlBucket
+          - WebsiteURL
       Description: FrontendS3TinyUrlBucket website URL
 Outputs:
   Url:
     Description: The static website URL for the service.
     Value:
       Fn::GetAtt:
-      - FrontendS3TinyUrlBucket
-      - WebsiteURL
+        - FrontendS3TinyUrlBucket
+        - WebsiteURL

@@ -10,14 +10,16 @@ phases:
     commands:
       - TEST_STAGE=integ-tests-`date +%s`
       - ./frontend/bin/package-frontend.sh
+      - ./backend/bin/package-backend.sh
       - ./bin/package.sh -n backend
       - ./bin/deploy.sh -n $TEST_STAGE-backend -t backend/target/cfn/app/packaged.yml -o "Stage=$TEST_STAGE"
       - ./bin/package.sh -n frontend
       - ./bin/deploy.sh -n $TEST_STAGE-website -t frontend/target/cfn/app/packaged.yml -o "Stage=$TEST_STAGE"
+      - WEBSITE_URL=$(aws ssm get-parameter --name /applications/tinyurl/$TEST_STAGE/s3/WebsiteBucket/WebsiteURL --query Parameter.Value --output text)
     finally:
       - cd $CODEBUILD_SRC_DIR
       #     Cleanup commands end with "|| true" to ensure that all of them are executed. It's ok if they fail trying to delete a resource that was never created due to a build phase error.
-      - WEBSITE_BUCKET=$(aws ssm get-parameter --name /applications/apprepo/$TEST_STAGE/s3/WebsiteBucket/Name --query Parameter.Value --output text) || true
+      - WEBSITE_BUCKET=$(aws ssm get-parameter --name /applications/tinyurl/$TEST_STAGE/s3/WebsiteBucket/Name --query Parameter.Value --output text) || true
       - aws s3 rm s3://$WEBSITE_BUCKET --recursive || true # S3 buckets must be emptied before being deleted
       - ./bin/delete-stack.sh -n $TEST_STAGE-website || true
       - ./bin/delete-stack.sh -n $TEST_STAGE-backend || true
