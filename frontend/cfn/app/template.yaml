@@ -49,7 +49,6 @@ Resources:
   FrontendS3TinyUrlBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: tinyurl-tech-frontend
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: index.html

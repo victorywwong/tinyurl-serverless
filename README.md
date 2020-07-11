@@ -4,7 +4,7 @@ TinyURL Serverless Application is now running on <https://tinyurl.tech>. URL sho
 
 ![Diagram](diagram.svg)
 
-The TinyURL Serverless Application has the primary objective as a URL shortening application built for highly scalability and reliability yet low maintenance from onset. The project captures key architectural advantages that comes with severless approach to applications. It comprises of infrastructure components, code structure, deployment techniques, testing approaches, and operational practices for a production-grade AWS based solution.
+The TinyURL Serverless Application has the primary objective as a URL shortening application built for highly scalability and reliability yet low maintenance from onset. The project captures key architectural advantages that comes with serverless approach to applications. It comprises of infrastructure components, code structure, deployment techniques, testing approaches, and operational practices for a production-grade AWS based solution.
 
 Written in Node.JS, CloudFormation and built using the AWS Serverless Application Model. It is comprised of these components:
 

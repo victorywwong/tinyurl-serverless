@@ -12,9 +12,8 @@ phases:
       - ./frontend/bin/package-frontend.sh
       - ./backend/bin/package-backend.sh
       - ./bin/package.sh -n backend
-      - ./bin/deploy.sh -n $TEST_STAGE-backend -t backend/target/cfn/app/packaged.yml -o "Stage=$TEST_STAGE"
       - ./bin/package.sh -n frontend
-      - ./bin/deploy.sh -n $TEST_STAGE-website -t frontend/target/cfn/app/packaged.yml -o "Stage=$TEST_STAGE"
+      - ./bin/deploy.sh -n $TEST_STAGE-website -t frontend/target/cfn/app/packaged-template.yaml -o "Stage=$TEST_STAGE"
       - WEBSITE_URL=$(aws ssm get-parameter --name /applications/tinyurl/$TEST_STAGE/s3/WebsiteBucket/WebsiteURL --query Parameter.Value --output text)
     finally:
       - cd $CODEBUILD_SRC_DIR

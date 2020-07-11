@@ -55,7 +55,7 @@ package() {
     do
         template_file=${module_dir}/cfn/${component}/template.yaml
         if [[ -f ${template_file} ]]; then
-            output_template_file=${module_dir}/target/cfn/${component}/packaged.yml
+            output_template_file=${module_dir}/target/cfn/${component}/packaged-template.yaml
 
             echo "Packaging SAM template: ${template_file}"
             mkdir -p `dirname ${output_template_file}`

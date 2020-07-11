@@ -32,7 +32,6 @@ Resources:
   TinyUrlDynamo:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !If [IsProd, "tinyurl", "tinyurl-test"]
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S

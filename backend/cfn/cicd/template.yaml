@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: "AWS::Serverless-2016-10-31"
+Transform: AWS::Serverless-2016-10-31
 Description: >-
   This template creates IAM roles and use them to setup CD pipeline for the backend service.
 
@@ -15,14 +15,14 @@ Parameters:
   ApplicationStackName:
     Type: String
     Description: The stack name the CD pipeline will use to deploy the application.
-    Default: "tinyurl-severless-backend"
+    Default: "tinyurl-serverless-backend"
   Stage:
     Type: String
     Description: The stage where the application is running in, e.g., dev, prod.
     Default: "dev"
 Resources:
   CD:
-    Type: "AWS::Serverless::Application"
+    Type: AWS::Serverless::Application
     Properties:
       Location:
         ApplicationId: arn:aws:serverlessrepo:us-east-1:646794253159:applications/aws-sam-codepipeline-cd
@@ -194,7 +194,7 @@ Resources:
   # This role is used to deploy backend to CloudFormation.
   # In addition to the permissions from CloudFormationDeployPolicy, it also defines permissions that is required to update the stack in CloudFormation
   DeployRole:
-    Type: "AWS::IAM::Role"
+    Type: AWS::IAM::Role
     Properties:
       Description: !Sub "Deploy CloudFormation stack ${ApplicationStackName}. Created by CloudFormation ${AWS::StackId}"
       AssumeRolePolicyDocument:
@@ -274,7 +274,7 @@ Resources:
   # This role is used to run integration tests in CodeBuild.
   # In addition to the permissions from CloudFormationDeployPolicy, it also defines permissions that is required by integration tests only.
   IntegTestsRole:
-    Type: "AWS::IAM::Role"
+    Type: AWS::IAM::Role
     Properties:
       Description: !Sub "Runs integration tests in CodeBuild for ${ApplicationStackName}. Created by CloudFormation ${AWS::StackId}"
       AssumeRolePolicyDocument:

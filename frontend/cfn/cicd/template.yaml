@@ -133,6 +133,25 @@ Resources:
               - cognito-idp:UpdateUserPoolClient
             Resource:
               - !Sub arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*
+          - Effect: 'Allow'
+            Action:
+              - cloudfront:CreateDistribution
+              - cloudfront:CreateDistributionWithTags
+              - cloudfront:GetDistribution
+              - cloudfront:GetDistributionConfig
+              - cloudfront:ListDistributions
+              - cloudfront:DeleteDistribution
+              - cloudfront:UpdateDistribution
+              - cloudfront:CreateCloudFrontOriginAccessIdentity
+              - cloudfront:ListCloudFrontOriginAccessIdentities
+              - cloudfront:GetCloudFrontOriginAccessIdentity
+              - cloudfront:GetCloudFrontOriginAccessIdentityConfig
+              - cloudfront:UpdateCloudFrontOriginAccessIdentity
+              - cloudfront:TagResource
+              - cloudfront:UntagResource
+            Resource:
+              - !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:*
+              - !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:*/*
   # This policy defines the minimum IAM permissions required to Create and Delete a stack for realworld-serverless-application-frontend into CloudFormation
   CloudFormationDeployPolicyBackend:
     Type: AWS::IAM::Policy

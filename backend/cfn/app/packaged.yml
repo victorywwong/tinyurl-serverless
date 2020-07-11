@@ -1,10 +1,10 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: "tiny-url
+Description: 'tiny-url
 
   SAM Template for tiny-url
 
-  "
+  '
 Globals:
   Function:
     Timeout: 20
@@ -12,42 +12,46 @@ Globals:
       Variables:
         DYNAMO_TABLE:
           Fn::Select:
-            - 1
-            - Fn::Split:
-                - /
-                - Fn::GetAtt:
-                    - TinyUrlDynamo
-                    - Arn
+          - 1
+          - Fn::Split:
+            - /
+            - Fn::GetAtt:
+              - TinyUrlDynamo
+              - Arn
         DB_ENDPOINT: http://dynamodb.ap-east-1.amazonaws.com
         REGION_NAME: ap-east-1
   Api:
     Cors:
-      AllowHeaders: "'Content-Type,X-Amz-Date,X-Amz-Security-Token,Authorization,X-Api-Key,X-Requested-With,Accept,Access-Control-Allow-Methods,Access-Control-Allow-Origin,Access-Control-Allow-Headers'"
-      AllowOrigin: "'*'"
-      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: '''Content-Type,X-Amz-Date,X-Amz-Security-Token,Authorization,X-Api-Key,X-Requested-With,Accept,Access-Control-Allow-Methods,Access-Control-Allow-Origin,Access-Control-Allow-Headers'''
+      AllowOrigin: '''*'''
+      AllowMethods: '''GET,POST,OPTIONS'''
 Parameters:
   Stage:
     Type: String
     Description: Deploying Environment (e.g. stage, prod)
     Default: dev
+Conditions:
+  IsProd:
+    Fn::Equals:
+    - Ref: Stage
+    - prod
 Resources:
   TinyUrlDynamo:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: tinyurl
       AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
+      - AttributeName: id
+        AttributeType: S
       KeySchema:
-        - AttributeName: id
-          KeyType: HASH
+      - AttributeName: id
+        KeyType: HASH
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
   GenerateTinyUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://tinyurl-tech-test/03966eb279bb8d7573c5455f574febce
+      CodeUri: s3://tinyurl-serverless-backend-repo/1be030d86eea4b1c9781790c35dd86f1
       Handler: app.lambdaHandler
       Runtime: nodejs12.x
       Events:
@@ -58,14 +62,14 @@ Resources:
             Method: post
       AutoPublishAlias: live
       Policies:
-        - DynamoDBWritePolicy:
-            TableName:
-              Ref: TinyUrlDynamo
-        - CloudWatchPutMetricPolicy: {}
+      - DynamoDBWritePolicy:
+          TableName:
+            Ref: TinyUrlDynamo
+      - CloudWatchPutMetricPolicy: {}
   GetTinyUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://tinyurl-tech-test/63f9509477b3b486fc78e50d9c2360b0
+      CodeUri: s3://tinyurl-serverless-backend-repo/d744c06a312ac9168aa92f657b236b89
       Handler: app.lambdaHandler
       Runtime: nodejs12.x
       Events:
@@ -76,10 +80,93 @@ Resources:
             Method: get
       AutoPublishAlias: live
       Policies:
-        - DynamoDBReadPolicy:
-            TableName:
-              Ref: TinyUrlDynamo
-        - CloudWatchPutMetricPolicy: {}
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: TinyUrlDynamo
+      - CloudWatchPutMetricPolicy: {}
+  TinyUrlDynamoTableName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/ddb/TinyUrlDynamo/TableName
+      Type: String
+      Value:
+        Ref: TinyUrlDynamo
+      Description: TinyUrlDynamo Table name
+  TinyUrlDynamoTableArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/ddb/TinyUrlDynamo/TableArn
+      Type: String
+      Value:
+        Fn::GetAtt:
+        - TinyUrlDynamo
+        - Arn
+      Description: TinyUrlDynamo Table name
+  GenerateTinyUrlFunctionName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/lambda/GenerateTinyUrlFunction/FunctionName
+      Type: String
+      Value:
+        Ref: GenerateTinyUrlFunction
+      Description: GenerateTinyUrlFunction function name
+  GenerateTinyUrlFunctionArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/lambda/GenerateTinyUrlFunction/FunctionArn
+      Type: String
+      Value:
+        Ref: GenerateTinyUrlFunction
+      Description: GenerateTinyUrlFunction function ARN
+  GenerateTinyUrlFunctionVersion:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/lambda/GenerateTinyUrlFunction/FunctionVersion
+      Type: String
+      Value:
+        Ref: GenerateTinyUrlFunction.Version
+      Description: GenerateTinyUrlFunction function version for alias live
+  GetTinyUrlFunctionName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/lambda/GetTinyUrlFunction/FunctionName
+      Type: String
+      Value:
+        Ref: GetTinyUrlFunction
+      Description: GetTinyUrlFunction function name
+  GetTinyUrlFunctionArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/lambda/GetTinyUrlFunction/FunctionArn
+      Type: String
+      Value:
+        Ref: GetTinyUrlFunction
+      Description: GetTinyUrlFunction function ARN
+  GetTinyUrlFunctionVersion:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/lambda/GetTinyUrlFunction/FunctionVersion
+      Type: String
+      Value:
+        Ref: GetTinyUrlFunction.Version
+      Description: GetTinyUrlFunction function version for alias live
+  ApiEndpoint:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/apigateway/ApplicationsApi/Endpoint
+      Type: String
+      Value:
+        Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+      Description: ApplicationsApi endpoint
 Outputs:
   GenerateTinyUrlApi:
     Description: API Gateway endpoint URL for Generate Tiny Url function
@@ -89,14 +176,14 @@ Outputs:
     Description: Generate Tiny Url Lambda Function ARN
     Value:
       Fn::GetAtt:
-        - GenerateTinyUrlFunction
-        - Arn
+      - GenerateTinyUrlFunction
+      - Arn
   GenerateTinyUrlFunctionIamRole:
     Description: Implicit IAM Role created for Generate Tiny Url function
     Value:
       Fn::GetAtt:
-        - GenerateTinyUrlFunctionRole
-        - Arn
+      - GenerateTinyUrlFunctionRole
+      - Arn
   GetTinyUrlApi:
     Description: API Gateway endpoint URL for Get Tiny Url function
     Value:
@@ -105,11 +192,11 @@ Outputs:
     Description: Get Tiny Url Lambda Function ARN
     Value:
       Fn::GetAtt:
-        - GetTinyUrlFunction
-        - Arn
+      - GetTinyUrlFunction
+      - Arn
   GetTinyUrlFunctionIamRole:
     Description: Implicit IAM Role created for Get Tiny Url function
     Value:
       Fn::GetAtt:
-        - GetTinyUrlFunctionRole
-        - Arn
+      - GetTinyUrlFunctionRole
+      - Arn

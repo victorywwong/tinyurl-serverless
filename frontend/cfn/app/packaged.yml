@@ -20,25 +20,25 @@ Resources:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
-        Comment: Cloudfront distribution for serverless website
+        Comment: Cloudfront distribution for tinyurl website
         DefaultRootObject: index.html
         Enabled: true
         HttpVersion: http2
         Origins:
-          - Id: s3-website
-            DomainName:
-              Fn::GetAtt:
-                - FrontendS3TinyUrlBucket
-                - DomainName
-            S3OriginConfig:
-              OriginAccessIdentity:
-                Fn::Sub: origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
+        - Id: s3-website
+          DomainName:
+            Fn::GetAtt:
+            - FrontendS3TinyUrlBucket
+            - RegionalDomainName
+          S3OriginConfig:
+            OriginAccessIdentity:
+              Fn::Sub: origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
         DefaultCacheBehavior:
           Compress: true
           AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
+          - GET
+          - HEAD
+          - OPTIONS
           ForwardedValues:
             QueryString: false
           TargetOriginId: s3-website
@@ -46,7 +46,6 @@ Resources:
   FrontendS3TinyUrlBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: tinyurl-tech-frontend
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: index.html
@@ -59,15 +58,15 @@ Resources:
         Ref: FrontendS3TinyUrlBucket
       PolicyDocument:
         Statement:
-          - Action:
-              - s3:GetObject
-            Effect: Allow
-            Resource:
-              - Fn::Sub: arn:aws:s3:::${FrontendS3TinyUrlBucket}/*
-            Principal:
-              AWS:
-                Fn::Sub: arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity
-                  ${CloudFrontOriginAccessIdentity}
+        - Action:
+          - s3:GetObject
+          Effect: Allow
+          Resource:
+          - Fn::Sub: arn:aws:s3:::${FrontendS3TinyUrlBucket}/*
+          Principal:
+            AWS:
+              Fn::Sub: arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity
+                ${CloudFrontOriginAccessIdentity}
   DeploymentLayer:
     Type: AWS::Serverless::Application
     Properties:
@@ -78,29 +77,34 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Layers:
-        - Fn::GetAtt:
-            - DeploymentLayer
-            - Outputs.Arn
-      CodeUri: s3://tinyurl-tech-test/bd28a0849b355b648de332542ca703c6
+      - Fn::GetAtt:
+        - DeploymentLayer
+        - Outputs.Arn
+      CodeUri: s3://tinyurl-serverless-frontend-repo/bd28a0849b355b648de332542ca703c6
       AutoPublishAlias: live
       Runtime: python3.6
       Handler: deployer.resource_handler
       Timeout: 600
       Policies:
-        - S3CrudPolicy:
-            BucketName:
-              Ref: FrontendS3TinyUrlBucket
+      - S3CrudPolicy:
+          BucketName:
+            Ref: FrontendS3TinyUrlBucket
   DeploymentResource:
     Type: AWS::CloudFormation::CustomResource
     Properties:
       ServiceToken:
         Fn::GetAtt:
-          - DeploymentFunction
-          - Arn
+        - DeploymentFunction
+        - Arn
       Version:
         Ref: DeploymentFunction.Version
       TargetBucket:
         Ref: FrontendS3TinyUrlBucket
+      Substitutions:
+        FilePattern: js/*.js*
+        Values:
+          BACKEND_ENDPOINT:
+            Fn::Sub: '{{resolve:ssm:/applications/tinyurl/${Stage}/apigateway/ApplicationsApi/Endpoint:1}}'
       Acl: public-read
       CacheControlMaxAge: 600
   FrontendS3TinyUrlBucketName:
@@ -120,13 +124,24 @@ Resources:
       Type: String
       Value:
         Fn::GetAtt:
-          - FrontendS3TinyUrlBucket
-          - WebsiteURL
-      Description: FrontendS3TinyUrlBucket website URL
+        - FrontendS3TinyUrlBucket
+        - WebsiteURL
+      Description: Frontend S3 Bucket Website URL
+  CloudfrontDomain:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/cloudfront/CloudfrontDistribution/DomainName
+      Type: String
+      Value:
+        Fn::GetAtt:
+        - CloudfrontDistribution
+        - DomainName
+      Description: Frontend Cloudfront Domain
 Outputs:
   Url:
     Description: The static website URL for the service.
     Value:
       Fn::GetAtt:
-        - FrontendS3TinyUrlBucket
-        - WebsiteURL
+      - FrontendS3TinyUrlBucket
+      - WebsiteURL

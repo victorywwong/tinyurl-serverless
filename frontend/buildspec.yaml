@@ -12,5 +12,5 @@ phases:
       - ./bin/package.sh -n frontend
 artifacts:
   files:
-    - frontend/target/cfn/app/packaged.yml
+    - frontend/target/cfn/app/packaged-template.yaml
   discard-paths: yes
