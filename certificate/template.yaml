@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  tiny-url
+
+  SAM Template for tiny-url certificate
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: Domain name
+    Default: "*.tinyurl.tech"
+  HostedZoneId:
+    Type: String
+    Description: Hosted Zone Id for Domain on Route53
+    Default: "Z000000000000000000"
+
+Resources:
+  DomainCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          ValidationDomain: !Ref DomainName
+      ValidationMethod: "DNS"
+  # Storing resources names to SSM
+  DomainCertificateName:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/applications/tinyurl/DomainCertificate"
+      Type: "String"
+      Value: !Ref DomainCertificate
+      Description: "DomainCertificate name"
+  # Storing resources names to SSM
+  HostedZoneIdName:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "/applications/tinyurl/HostedZoneId"
+      Type: "String"
+      Value: !Ref HostedZoneId
+      Description: "HostedZoneId for domain"

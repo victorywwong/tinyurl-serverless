@@ -2,14 +2,27 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: 'tiny-url
 
-  Cfn Template for tiny-url frontend
+  SAM Template for tiny-url frontend
 
   '
 Parameters:
   Stage:
     Type: String
     Description: Deploying Environment (e.g. stage, prod)
-    Default: dev
+    Default: prod
+  ApiEndpoint:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: ApiEndpoint value for application
+    Default: /applications/tinyurl/prod/apigateway/ApplicationsApi/Endpoint
+  DomainCertificate:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: DomainCertificate value for application
+    Default: /applications/tinyurl/DomainCertificate
+Conditions:
+  IsProd:
+    Fn::Equals:
+    - Ref: Stage
+    - prod
 Resources:
   CloudFrontOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
@@ -43,6 +56,19 @@ Resources:
             QueryString: false
           TargetOriginId: s3-website
           ViewerProtocolPolicy: redirect-to-https
+        Aliases:
+          Fn::If:
+          - IsProd
+          - - www.tinyurl.tech
+          - []
+        ViewerCertificate:
+          Fn::If:
+          - IsProd
+          - SslSupportMethod: sni-only
+            AcmCertificateArn:
+              Ref: DomainCertificate
+            MinimumProtocolVersion: TLSv1.2_2018
+          - CloudFrontDefaultCertificate: true
   FrontendS3TinyUrlBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -80,7 +106,7 @@ Resources:
       - Fn::GetAtt:
         - DeploymentLayer
         - Outputs.Arn
-      CodeUri: s3://tinyurl-serverless-frontend-repo/bd28a0849b355b648de332542ca703c6
+      CodeUri: s3://tinyurl-serverless-frontend-packaged/60a9205910b1a4a7219941333a8fc8bd
       AutoPublishAlias: live
       Runtime: python3.6
       Handler: deployer.resource_handler
@@ -104,8 +130,8 @@ Resources:
         FilePattern: js/*.js*
         Values:
           BACKEND_ENDPOINT:
-            Fn::Sub: '{{resolve:ssm:/applications/tinyurl/${Stage}/apigateway/ApplicationsApi/Endpoint:1}}'
-      Acl: public-read
+            Ref: ApiEndpoint
+      Acl: private
       CacheControlMaxAge: 600
   FrontendS3TinyUrlBucketName:
     Type: AWS::SSM::Parameter

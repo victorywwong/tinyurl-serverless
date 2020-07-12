@@ -9,11 +9,14 @@ phases:
   build:
     commands:
       - TEST_STAGE=integ-tests-`date +%s`
+      - API_ENDPOINT="/applications/tinyurl/"
+      - API_ENDPOINT+=TEST_STAGE
+      - API_ENDPOINT+="/apigateway/ApplicationsApi/Endpoint"
       - ./frontend/bin/package-frontend.sh
       - ./backend/bin/package-backend.sh
       - ./bin/package.sh -n backend
       - ./bin/package.sh -n frontend
-      - ./bin/deploy.sh -n $TEST_STAGE-website -t frontend/target/cfn/app/packaged-template.yaml -o "Stage=$TEST_STAGE"
+      - ./bin/deploy.sh -n $TEST_STAGE-website -t frontend/target/cfn/app/packaged-template.yaml -o "Stage=$TEST_STAGE ApiEndpoint=$API_ENDPOINT"
       - WEBSITE_URL=$(aws ssm get-parameter --name /applications/tinyurl/$TEST_STAGE/s3/WebsiteBucket/WebsiteURL --query Parameter.Value --output text)
     finally:
       - cd $CODEBUILD_SRC_DIR

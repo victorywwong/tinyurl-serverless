@@ -19,7 +19,7 @@ Parameters:
   Stage:
     Type: String
     Description: The stage where the application is running in, e.g., dev, prod.
-    Default: "dev"
+    Default: prod
 Resources:
   CD:
     Type: AWS::Serverless::Application
@@ -191,6 +191,32 @@ Resources:
               - cloudwatch:DeleteAlarms
             Resource:
               - !Sub arn:${AWS::Partition}:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:*
+          - Effect: "Allow"
+            Action:
+              - cloudfront:CreateDistribution
+              - cloudfront:CreateDistributionWithTags
+              - cloudfront:GetDistribution
+              - cloudfront:GetDistributionConfig
+              - cloudfront:ListDistributions
+              - cloudfront:DeleteDistribution
+              - cloudfront:UpdateDistribution
+            Resource:
+              - !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:*
+              - !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*
+          - Effect: "Allow"
+            Action:
+              - acm:DeleteCertificate
+              - acm:GetCertificate
+              - acm:RemoveTagsFromCertificate
+              - acm:RenewCertificate
+              - acm:RequestCertificate
+            Resource:
+              - !Sub arn:aws:acm:us-east-1:${AWS::AccountId}:certificate/*
+          - Effect: "Allow"
+            Action:
+              - route53:*
+            Resource:
+              - arn:aws:route53:::*/*
   # This role is used to deploy backend to CloudFormation.
   # In addition to the permissions from CloudFormationDeployPolicy, it also defines permissions that is required to update the stack in CloudFormation
   DeployRole:

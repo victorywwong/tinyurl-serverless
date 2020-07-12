@@ -9,9 +9,12 @@ phases:
   build
     commands:
       - TEST_STAGE=integ-tests-`date +%s`
+      - API_ENDPOINT="/applications/tinyurl/"
+      - API_ENDPOINT+=TEST_STAGE
+      - API_ENDPOINT+="/apigateway/ApplicationsApi/Endpoint"
       - ./backend/bin/package-backend.sh
       - ./bin/package.sh -n backend
-      - ./bin/deploy.sh -n $TEST_STAGE-backend -t backend/target/cfn/app/packaged-template.yaml -o "Stage=$TEST_STAGE"
+      - ./bin/deploy.sh -n $TEST_STAGE-backend -t backend/target/cfn/app/packaged-template. yaml -o "Stage=$TEST_STAGE ApiEndpoint=$API_ENDPOINT"
     finally:
       - cd $CODEBUILD_SRC_DIR
       #     Cleanup commands end with "|| true" to ensure that all of them are executed. It's ok if they fail trying to delete a resource that was never created due to a build phase error.

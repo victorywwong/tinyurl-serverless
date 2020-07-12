@@ -2,12 +2,13 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: 'tiny-url
 
-  SAM Template for tiny-url
+  SAM Template for tiny-url backend
 
   '
 Globals:
   Function:
     Timeout: 20
+    Tracing: Active
     Environment:
       Variables:
         DYNAMO_TABLE:
@@ -20,22 +21,72 @@ Globals:
               - Arn
         DB_ENDPOINT: http://dynamodb.ap-east-1.amazonaws.com
         REGION_NAME: ap-east-1
-  Api:
-    Cors:
-      AllowHeaders: '''Content-Type,X-Amz-Date,X-Amz-Security-Token,Authorization,X-Api-Key,X-Requested-With,Accept,Access-Control-Allow-Methods,Access-Control-Allow-Origin,Access-Control-Allow-Headers'''
-      AllowOrigin: '''*'''
-      AllowMethods: '''GET,POST,OPTIONS'''
 Parameters:
   Stage:
     Type: String
     Description: Deploying Environment (e.g. stage, prod)
-    Default: dev
+    Default: prod
+  HostedZoneId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: HostedZoneId value for application
+    Default: /applications/tinyurl/HostedZoneId
+  DomainCertificate:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: DomainCertificate value for application
+    Default: /applications/tinyurl/DomainCertificate
 Conditions:
   IsProd:
     Fn::Equals:
     - Ref: Stage
     - prod
 Resources:
+  ApplicationsApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: s3://tinyurl-serverless-backend-packaged/1ceef6ad7f8b977ea556e1348e7567ca
+      StageName: Prod
+      TracingEnabled: true
+      MethodSettings:
+      - ResourcePath: /*
+        HttpMethod: '*'
+        DataTraceEnabled:
+          Fn::If:
+          - IsProd
+          - false
+          - true
+        LoggingLevel: INFO
+        MetricsEnabled: true
+        ThrottlingRateLimit: 5
+        ThrottlingBurstLimit: 10
+      AccessLogSetting:
+        DestinationArn:
+          Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApiAccessLogGroup}
+        Format: $context.identity.sourceIp $context.authorizer.claims.sub [$context.requestTime]
+          "$context.httpMethod $context.resourcePath $context.protocol" $context.status
+          $context.requestId $context.awsEndpointRequestId $context.xrayTraceId $context.responseLatency
+          $context.integrationLatency "$context.error.message"
+      OpenApiVersion: 3.0.0
+      Cors:
+        AllowHeaders: '''Content-Type,X-Amz-Date,X-Amz-Security-Token,Authorization,X-Api-Key,X-Requested-With,Accept,Access-Control-Allow-Methods,Access-Control-Allow-Origin,Access-Control-Allow-Headers'''
+        AllowOrigin: '''*'''
+        AllowMethods: '''GET,POST,OPTIONS'''
+      Domain:
+        CertificateArn:
+          Ref: DomainCertificate
+        DomainName:
+          Fn::If:
+          - IsProd
+          - s.tinyurl.tech
+          - test.tinyurl.tech
+        EndpointConfiguration: EDGE
+        Route53:
+          HostedZoneId:
+            Ref: HostedZoneId
+          IpV6: true
   TinyUrlDynamo:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -51,13 +102,15 @@ Resources:
   GenerateTinyUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://tinyurl-serverless-backend-repo/1be030d86eea4b1c9781790c35dd86f1
+      CodeUri: s3://tinyurl-serverless-backend-packaged/1be030d86eea4b1c9781790c35dd86f1
       Handler: app.lambdaHandler
       Runtime: nodejs12.x
       Events:
         GenerateTinyUrl:
           Type: Api
           Properties:
+            RestApiId:
+              Ref: ApplicationsApi
             Path: /generate
             Method: post
       AutoPublishAlias: live
@@ -66,16 +119,29 @@ Resources:
           TableName:
             Ref: TinyUrlDynamo
       - CloudWatchPutMetricPolicy: {}
+      DeploymentPreference:
+        Enabled: true
+        Type:
+          Fn::If:
+          - IsProd
+          - Canary10Percent10Minutes
+          - AllAtOnce
+        Alarms:
+        - Ref: ApiGenerateAvailability
+        - Ref: ApiGenerate4xxErrors
+        - Ref: ApiGenerateLatencyP50
   GetTinyUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: s3://tinyurl-serverless-backend-repo/d744c06a312ac9168aa92f657b236b89
+      CodeUri: s3://tinyurl-serverless-backend-packaged/d744c06a312ac9168aa92f657b236b89
       Handler: app.lambdaHandler
       Runtime: nodejs12.x
       Events:
         GetTinyUrl:
           Type: Api
           Properties:
+            RestApiId:
+              Ref: ApplicationsApi
             Path: /{tinyId}
             Method: get
       AutoPublishAlias: live
@@ -84,6 +150,158 @@ Resources:
           TableName:
             Ref: TinyUrlDynamo
       - CloudWatchPutMetricPolicy: {}
+      DeploymentPreference:
+        Enabled: true
+        Type:
+          Fn::If:
+          - IsProd
+          - Canary10Percent10Minutes
+          - AllAtOnce
+        Alarms:
+        - Ref: ApiGetAvailability
+        - Ref: ApiGet4xxErrors
+        - Ref: ApiGetLatencyP50
+  ApiGatewayPushToCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Push logs to CloudWatch logs from API Gateway
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+  ApiAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+        - ApiGatewayPushToCloudWatchRole
+        - Arn
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /aws/apigateway/AccessLog-${ApplicationsApi}
+      RetentionInDays: 365
+  ApiGenerateAvailability:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription:
+        Fn::Sub: Api availability is lower than 90%. Only used in canary deployment
+          for Lambda ${GenerateTinyUrlFunction}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ApiName
+        Value:
+          Fn::Sub: tinyurl-serverless-backend-${Stage}
+      EvaluationPeriods: 5
+      MetricName: 5XXErrors
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Average
+      Threshold: 0.1
+      TreatMissingData: notBreaching
+  ApiGenerate4xxErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription:
+        Fn::Sub: Api 4xx Errors are more than 30%. Only used in canary deployment
+          for Lambda ${GenerateTinyUrlFunction}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ApiName
+        Value:
+          Fn::Sub: tinyurl-serverless-backend-${Stage}
+      EvaluationPeriods: 5
+      MetricName: 4XXErrors
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Average
+      Threshold: 0.3
+      TreatMissingData: notBreaching
+  ApiGenerateLatencyP50:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription:
+        Fn::Sub: Api latency p50 is too high. Only used in canary deployment for Lambda
+          ${GenerateTinyUrlFunction}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ApiName
+        Value:
+          Fn::Sub: tinyurl-serverless-backend-${Stage}
+      EvaluationPeriods: 5
+      MetricName: Latency
+      Namespace: AWS/ApiGateway
+      Period: 60
+      ExtendedStatistic: p50
+      Threshold: 200
+      TreatMissingData: notBreaching
+  ApiGetAvailability:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription:
+        Fn::Sub: Api availability is lower than 90%. Only used in canary deployment
+          for Lambda ${GetTinyUrlFunction}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ApiName
+        Value:
+          Fn::Sub: tinyurl-serverless-backend-${Stage}
+      EvaluationPeriods: 5
+      MetricName: 5XXErrors
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Average
+      Threshold: 0.1
+      TreatMissingData: notBreaching
+  ApiGet4xxErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription:
+        Fn::Sub: Api 4xx Errors are more than 30%. Only used in canary deployment
+          for Lambda ${GetTinyUrlFunction}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ApiName
+        Value:
+          Fn::Sub: tinyurl-serverless-backend-${Stage}
+      EvaluationPeriods: 5
+      MetricName: 4XXErrors
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Average
+      Threshold: 0.3
+      TreatMissingData: notBreaching
+  ApiGetLatencyP50:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription:
+        Fn::Sub: Api latency p50 is too high. Only used in canary deployment for Lambda
+          ${GetTinyUrlFunction}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+      - Name: ApiName
+        Value:
+          Fn::Sub: tinyurl-serverless-backend-${Stage}
+      EvaluationPeriods: 5
+      MetricName: Latency
+      Namespace: AWS/ApiGateway
+      Period: 60
+      ExtendedStatistic: p50
+      Threshold: 200
+      TreatMissingData: notBreaching
   TinyUrlDynamoTableName:
     Type: AWS::SSM::Parameter
     Properties:
@@ -158,6 +376,15 @@ Resources:
       Value:
         Ref: GetTinyUrlFunction.Version
       Description: GetTinyUrlFunction function version for alias live
+  ApiId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/apigateway/ApplicationsApi/Id
+      Type: String
+      Value:
+        Ref: ApplicationsApi
+      Description: ApplicationsApi Id
   ApiEndpoint:
     Type: AWS::SSM::Parameter
     Properties:
@@ -165,13 +392,30 @@ Resources:
         Fn::Sub: /applications/tinyurl/${Stage}/apigateway/ApplicationsApi/Endpoint
       Type: String
       Value:
-        Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+        Fn::If:
+        - IsProd
+        - s.tinyurl.tech
+        - Fn::Sub: https://${ApplicationsApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
       Description: ApplicationsApi endpoint
+  ApiAccessLogGroupName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/apigateway/ApplicationsApi/AccessLog/LogGroupName
+      Type: String
+      Value:
+        Ref: ApiAccessLogGroup
+      Description: ApplicationsApi access log CloudWatch log group name
+  ApiAccessLogGroupArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:
+        Fn::Sub: /applications/tinyurl/${Stage}/apigateway/ApplicationsApi/AccessLog/LogGroupArn
+      Type: String
+      Value:
+        Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApiAccessLogGroup}
+      Description: ApplicationsApi access log CloudWatch log group ARN
 Outputs:
-  GenerateTinyUrlApi:
-    Description: API Gateway endpoint URL for Generate Tiny Url function
-    Value:
-      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
   GenerateTinyUrlFunction:
     Description: Generate Tiny Url Lambda Function ARN
     Value:
@@ -184,10 +428,6 @@ Outputs:
       Fn::GetAtt:
       - GenerateTinyUrlFunctionRole
       - Arn
-  GetTinyUrlApi:
-    Description: API Gateway endpoint URL for Get Tiny Url function
-    Value:
-      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
   GetTinyUrlFunction:
     Description: Get Tiny Url Lambda Function ARN
     Value:

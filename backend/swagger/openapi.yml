@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   description: "This is the API for Tiny URL Shortener.  tinyurl.tech at [https://tinyurl.tech](https://tinyurl.tech) .     "
   version: 2020-07-07
-  title: 
+  title:
     Fn.Sub: tinyurl-api-${Stage}
   contact:
     email: "victor@ywwong.com"
@@ -12,10 +12,10 @@ info:
 host: "www.tinyurl.tech"
 basePath: "/prod/"
 tags:
-- name: "tinyurl"
-  description: "URL shortening service"
+  - name: "tinyurl"
+    description: "URL shortening service"
 schemes:
-- "https"
+  - "https"
 
 # Enable request validator. See doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-validation-sample-api-swagger.html
 x-amazon-apigateway-request-validators:
@@ -41,7 +41,7 @@ paths:
   /generate:
     post:
       tags:
-      - "tinyurl"
+        - "tinyurl"
       summary: "Generate a new tinyUrl"
       description: "Return with or without error"
       operationId: "GenerateTinyUrlFunction"
@@ -71,24 +71,24 @@ paths:
                 $ref: "#/components/schemas/GenerateTinyUrlException"
       x-amazon-apigateway-integration:
         uri:
-          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiLambda.Arn}:live/invocations
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GenerateTinyUrlFunction.Arn}:live/invocations
         httpMethod: POST
         type: aws_proxy
         passthroughBehavior: never
   /{tinyId}:
     get:
       tags:
-      - "tinyurl"
+        - "tinyurl"
       summary: "Find URL by tinyId"
       description: "Redirects to url or respond with error"
       operationId: "GetTinyUrlFunction"
       parameters:
-      - name: "tinyId"
-        in: "path"
-        description: "ID of tinyUrl entry"
-        required: true
-        schema:
-          type: "string"
+        - name: "tinyId"
+          in: "path"
+          description: "ID of tinyUrl entry"
+          required: true
+          schema:
+            type: "string"
       responses:
         "301":
           description: "Successful operation"
@@ -110,7 +110,7 @@ paths:
                 $ref: "#/components/schemas/GetTinyUrlException"
       x-amazon-apigateway-integration:
         uri:
-          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiLambda.Arn}:live/invocations
+          Fn::Sub: arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetTinyUrlFunction.Arn}:live/invocations
         httpMethod: POST
         type: aws_proxy
         passthroughBehavior: never
