@@ -9,7 +9,7 @@ Parameters:
   DomainName:
     Type: String
     Description: Domain name
-    Default: "*.tinyurl.tech"
+    Default: "tinyurl.tech"
   HostedZoneId:
     Type: String
     Description: Hosted Zone Id for Domain on Route53
@@ -19,10 +19,12 @@ Resources:
   DomainCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
-      DomainName: !Ref DomainName
+      DomainName: !Sub "*.${DomainName}"
       DomainValidationOptions:
-        - DomainName: !Ref DomainName
-          ValidationDomain: !Ref DomainName
+        - DomainName: !Sub "*.${DomainName}"
+          ValidationDomain: !Sub "*.${DomainName}"
+      SubjectAlternativeNames:
+        - !Ref DomainName
       ValidationMethod: "DNS"
   # Storing resources names to SSM
   DomainCertificateName:

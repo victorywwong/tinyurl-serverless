@@ -59,7 +59,8 @@ Resources:
         Aliases:
           Fn::If:
           - IsProd
-          - - www.tinyurl.tech
+          - - tinyurl.tech
+            - www.tinyurl.tech
           - []
         ViewerCertificate:
           Fn::If:
