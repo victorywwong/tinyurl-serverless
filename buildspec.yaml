@@ -1,0 +1,12 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 12
+    commands:
+      - npm install -g @vue/cli
+  build:
+    commands:
+      - ./frontend/bin/package-frontend.sh
+      - ./backend/bin/package-backend.sh
