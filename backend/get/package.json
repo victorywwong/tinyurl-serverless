@@ -14,7 +14,7 @@
     "test:cov": "nyc --reporter=html mocha tests/unit/",
     "test:badge": "nyc mocha tests/unit/ && nyc --reporter=text-lcov | coveralls",
     "jsdoc": "jsdoc handler.js -d ./docs",
-    "package": "npm install && npm run test && rm -rf node_modules coverage docs && npm install --only=prod"
+    "package": "npm install && npm run test && rm -rf node_modules coverage docs && npm install --production"
   },
   "devDependencies": {
     "aws-sdk": "^2.706.0",
